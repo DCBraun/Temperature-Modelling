@@ -25,12 +25,12 @@ NormalTest(log(means$discharge),title=paste("Step 1 Normal test of log discharge
 # I have added an autocorrelation structure with a lag of one. Much improved the fit, but more diagnostics could be done 
 Harm  <- HarmFunc(means) # I can't get gls to work unless I can supply a data argument, but I'll leave this func call in for now.
 
-airHarm  <- gls(airtemp        ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365), cor=corAR1(), data=means,na.action=na.exclude)
-disHarm  <- gls(log(discharge) ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365), cor=corAR1(), data=means,na.action=na.exclude)
-tempHarm <- gls(watertemp      ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365), cor=corAR1(), data=means,na.action=na.exclude)
+airHarm  <- gls(airtemp        ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365), cor=corAR1(form=~1), data=means,na.action=na.exclude)
+disHarm  <- gls(log(discharge) ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365), cor=corAR1(form=~1), data=means,na.action=na.exclude)
+tempHarm <- gls(watertemp      ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365), cor=corAR1(form=~1), data=means,na.action=na.exclude)
 
 # Can check diagnostics using ModelDiagnostics(lmmodel) function
-DiagnoseSeasonal <- ModelDiagnostics(tempHarm,title=paste("Step 1: Model Diagnosis for Seasonal Component"))
+DiagnoseSeasonal <- ModelDiagnostics(means,tempHarm,title=paste("Step 1: Model Diagnosis for Seasonal Component"))
 
 # Plot the data using LmPlotFunc(data,yvals,yLab,title) YlabT is temp, ylabD is discharge
 LmPlotFunc(means,means$watertemp,tempHarm,ylabT,paste("Water Temperature"))
@@ -63,12 +63,12 @@ ResidModAir            <- gls(tempresids ~ airresids, data=means, na.action=na.e
 ResidModDis            <- gls(tempresids ~ dischargeresids, data=means, na.action=na.exclude)
 ResidModAirDis         <- gls(tempresids ~ airresids + dischargeresids, data=means, na.action=na.exclude)
 ResidModAirDisInt      <- gls(tempresids ~ airresids.centered:dischargeresids.centered, data=means, na.action=na.exclude)
-ResidModAirLag         <- gls(tempresids ~ airresids, data=means, na.action=na.exclude,cor=corAR1())
-ResidModDisLag         <- gls(tempresids ~ dischargeresids, data=means, na.action=na.exclude,cor=corAR1())
-ResidModAirDisLag      <- gls(tempresids ~ airresids + dischargeresids, data=means, na.action=na.exclude,cor=corAR1())
-ResidModAirDisIntLag   <- gls(tempresids ~ airresids.centered:dischargeresids.centered, data=means, na.action=na.exclude,cor=corAR1())
+ResidModAirLag         <- gls(tempresids ~ airresids, data=means, na.action=na.exclude,cor=corAR1(form=~1))
+ResidModDisLag         <- gls(tempresids ~ dischargeresids, data=means, na.action=na.exclude,cor=corAR1(form=~1))
+ResidModAirDisLag      <- gls(tempresids ~ airresids + dischargeresids, data=means, na.action=na.exclude,cor=corAR1(form=~1))
+ResidModAirDisIntLag   <- gls(tempresids ~ airresids.centered:dischargeresids.centered, data=means, na.action=na.exclude,cor=corAR1(form=~1))
 ResidModAirAvg         <- gls(tempresids ~ air7day, data=means, na.action=na.exclude) # Fit is way improved with 7 day moving average, but would obviously need to explore
-ResidModAirAvgLag      <- gls(tempresids ~ air7day, data=means, na.action=na.exclude,cor=corAR1()) # Fit is way improved with 7 day moving average, but would obviously need to explore
+ResidModAirAvgLag      <- gls(tempresids ~ air7day, data=means, na.action=na.exclude,cor=corAR1(form=~1)) # Fit is way improved with 7 day moving average, but would obviously need to explore
 
 
 # Create an AIC table to evaluate these models
@@ -80,7 +80,7 @@ print("Residual Models AIC (Step 2):")
 print(ResidModAICs)
 print(sprintf("Lowest AIC model: %s; %s", ResidModAICs[MinAICPosition[1],2], ResidModAICs[MinAICPosition[1],1]))
 
-DiagnoseNonSeasonal <- ModelDiagnostics(ResidModAirAvgLag,title=paste("Step 2: Model Diagnosis for Non Seasonal Component")) # Not working need to fix model diagnostic
+DiagnoseNonSeasonal <- ModelDiagnostics(means,ResidModAirAvgLag,title=paste("Step 2: Model Diagnosis for Non Seasonal Component")) # Not working need to fix model diagnostic
 
 ########## Step 3: Combine the Seasonal and Non Seasonal Components ##########
 
@@ -89,7 +89,7 @@ mse.addComponents <- mean((Tp.addComponents-means$watertemp)^2,na.rm=TRUE)
 
 ########## Step 4: Alternative Model with Discharge and Air Temp as Parameters ##########
 allModel  <- gls(watertemp ~ cos(2*pi*dateindex/365)+sin(2*pi*dateindex/365)+cos(2*pi*dateindex*2/365)+sin(2*pi*dateindex*2/365)+cos(2*pi*dateindex*3/365)+sin(2*pi*dateindex*3/365)
-                 +air7day+log(discharge), cor=corAR1(), data=means,na.action=na.exclude)
+                 +air7day+log(discharge), cor=corAR1(form=~1), data=means,na.action=na.exclude)
 Tp.allModel  <- predict(allModel)
 mse.allModel <- mean((Tp.allModel-means$watertemp)^2,na.rm=TRUE)
 

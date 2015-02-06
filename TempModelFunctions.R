@@ -42,16 +42,18 @@ LmPlotFunc <- function(data,yvals,lmdata,yLab,title) {
 ########## Model Diagnostics ##########
 # Create a function to test model fit
 # The stationarity test would probably be best done with plots
-ModelDiagnostics <- function(lmmodel,title) {
+ModelDiagnostics <- function(data,lmmodel,title) {
   windows()
   Stationarity <- Box.test(residuals(lmmodel),lag=5) # low p value indicates stationarity
   par(mfrow=c(2,3))
   par(oma = rep(2, 4))
-  PartialAutocorrelation <- acf(residuals(lmmodel),type="partial",na.action=na.pass) # Most of my models have significant autocorrelation at 1
-  SerialAutocorrelation <- acf(residuals(lmmodel),na.action=na.pass) # Most of my models have significant autocorrelation at 1
-  ResidPlot <- plot(lmmodel$residuals,lmmodel$fitted)
-  NormalQQPlot <- qqnorm(lmmodel$residuals)
-  Hist <- hist(lmmodel$residuals)
+  Predicted <- predict(lmmodel)
+  Residuals <- data$watertemp-Predicted
+  PartialAutocorrelation <- acf(Residuals,type="partial",na.action=na.pass) # Most of my models have significant autocorrelation at 1
+  SerialAutocorrelation <- acf(Residuals,na.action=na.pass) # Most of my models have significant autocorrelation at 1
+  ResidPlot <- plot(Residuals,Predicted)
+  NormalQQPlot <- qqnorm(Residuals)
+  Hist <- hist(Residuals)
   mtext(side=3, title, outer=TRUE)
   FuncOut <- list(Stationarity=Stationarity,SerialAutocorrelation=SerialAutocorrelation)
   return(FuncOut)
